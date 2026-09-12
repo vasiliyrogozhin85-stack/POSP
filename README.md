@@ -1,86 +1,33 @@
-# Phone OS Profiler v0.3
+# Phone OS Profiler v0.5
 
-Android/ADB profiler for collecting hardware and firmware information needed to design a custom OS/device tree for a specific phone.
+Версия 0.5 подготовлена специально после проблемы установки v0.4 на DOOGEE S97 Pro.
 
-Target used during v0.3 design: DOOGEE S97 Pro / MT6785 / Android 11.
+## Главное исправление установки
 
-## 1. Normal Android application
+В v0.2-v0.4 использовался стандартный debug-подписант GitHub Actions. На новом runner debug-ключ может отличаться, поэтому Android может отклонить обновление уже установленного APK с тем же applicationId.
 
-Builds an APK and writes one JSON report with schema `phone_os_profiler_report`, schema version 2.
+Начиная с v0.5:
 
-Compared with v0.2 it adds normal-app probes for:
+- applicationId: `com.vasiliyrogozhin85.posp`
+- стабильный тестовый ключ: `app/signing/posp-dev.jks`
+- debug и release development-сборки подписываются одним ключом
+- следующие версии POSP должны использовать тот же applicationId и этот же тестовый ключ, чтобы обновляться поверх v0.5
 
-- graphics/GPU hints and SurfaceFlinger;
-- thermal service and thermal zones where readable;
-- block/partition hints;
-- firmware/baseband/vendor fingerprints;
-- existing CPU, RAM, storage, display, battery, sensors, cameras, network, audio, telephony, boot/Treble, kernel, system features and raw properties.
+**Важно:** этот ключ находится в исходниках и предназначен только для разработки/тестирования. Для публичного релиза нужен закрытый release-ключ, хранящийся вне репозитория.
 
-Android sandbox/SELinux may block some `/proc`, `/sys`, `/dev` and vendor data. Those failures are retained in the report instead of being hidden.
+## Возможности
 
-## 2. Advanced ADB collector
+- JSON-рапорт аппаратной/системной конфигурации
+- запрос runtime-разрешения READ_PHONE_STATE
+- Bluetooth-информация
+- отдельная кнопка отправки рапорта по Bluetooth
+- обычное Android Share
+- CPU, RAM, storage, display, battery, sensors, cameras, audio, network, telephony
+- boot / Treble / kernel / graphics / thermal / partitions / firmware
+- расширенный ADB/Termux collector в `tools/`
 
-The `tools/` directory contains:
+## Совместимость
 
-- `posp_adb_collector.py` — main collector;
-- `run_advanced_termux.sh` — Termux launcher that installs Python + Android platform tools and runs the collector.
-
-The advanced report is a separate JSON file with schema `phone_os_profiler_advanced_report`.
-
-It attempts to collect:
-
-- all Android properties and boot properties;
-- kernel/cmdline/modules;
-- partition map, fstab and mount information;
-- VINTF manifests and HAL libraries;
-- `lshal` and Android service list;
-- SurfaceFlinger/display/GPU information;
-- camera, sensors and audio dumpsys;
-- thermal and power/battery sysfs;
-- input devices;
-- Wi-Fi, Bluetooth, telephony, USB and network state;
-- available device-tree index;
-- vendor/odm firmware directory listings;
-- CPU frequency policies and memory information.
-
-### Run from Termux
-
-Enable Developer options and USB debugging on the target phone. The collector must run from a Termux/host environment that can see the target through ADB (for example another Android device with USB OTG, or use the Python collector from a PC).
-
-```bash
-cd tools
-chmod +x run_advanced_termux.sh
-./run_advanced_termux.sh
-```
-
-If the target phone already has working root and `su`:
-
-```bash
-./run_advanced_termux.sh --root
-```
-
-Without root the collector still gathers everything available to the ADB shell user.
-
-## GitHub Actions APK build
-
-Push to `main`/`master` or start the workflow manually. The workflow builds:
-
-`app/build/outputs/apk/debug/app-debug.apk`
-
-and uploads it as the artifact `PhoneOSProfiler-v0.3-debug`.
-
-## v0.4 additions
-- Dedicated **Send via Bluetooth** button for the generated JSON report.
-- Uses Android's system Bluetooth/OBEX share handler through `ACTION_SEND` + `FileProvider`; falls back to the normal share chooser when an OEM Bluetooth component cannot be resolved directly.
-- Runtime request for `READ_PHONE_STATE`; on Android 12+ also requests `BLUETOOTH_CONNECT` when collecting Bluetooth adapter metadata.
-- Adds `permissions`, `bluetooth`, `transport_capabilities`, and `collection_notes` to the report.
-- Report schema version is now 3; application version is 0.4.
-
-### Recommended next improvements after v0.4
-1. Merge the normal-app and ADB reports into one signed/hashed bundle.
-2. Collect VINTF manifests/matrices and `lshal` into structured JSON rather than raw text.
-3. Parse `/dev/block/by-name`, dynamic partitions and slot metadata into a normalized partition table.
-4. Add structured GPU, thermal-zone and input-device sections.
-5. Add Wi-Fi/Bluetooth chipset/firmware hints from properties and ADB dumpsys output.
-6. Add report completeness scoring so missing privileged data is obvious.
-7. Add export as ZIP containing JSON plus raw diagnostic attachments.
+- minSdk 26
+- Android 8.0+
+- проверяемая цель: DOOGEE S97 Pro / Android 11

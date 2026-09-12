@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class MainActivityV04 extends Activity {
+public class MainActivityV05 extends Activity {
     private static final int REQ_SCAN_PERMISSIONS = 401;
 
     private TextView status;
@@ -48,7 +48,7 @@ public class MainActivityV04 extends Activity {
         root.setPadding(pad, pad, pad, pad);
 
         TextView title = new TextView(this);
-        title.setText("Phone OS Profiler v0.4");
+        title.setText("Phone OS Profiler v0.5");
         title.setTextSize(24);
 
         TextView desc = new TextView(this);
@@ -121,15 +121,15 @@ public class MainActivityV04 extends Activity {
         new Thread(() -> {
             try {
                 JSONObject report = MainActivity.ReportCollector.collect(this);
-                report.put("schema_version", 3);
+                report.put("schema_version", 4);
                 JSONObject profiler = report.optJSONObject("profiler");
-                if (profiler != null) profiler.put("version", "0.4");
+                if (profiler != null) profiler.put("version", "0.5");
                 report.put("permissions", permissionStatus());
                 report.put("bluetooth", bluetoothInfo());
                 report.put("transport_capabilities", new JSONObject()
                         .put("android_share", true)
                         .put("bluetooth_obex_share", true));
-                report.put("collection_notes", "Normal-app mode is Android-sandbox limited; use the bundled ADB collector for VINTF/HAL/device-tree/partition details when available.");
+                report.put("collection_notes", "Normal-app mode is Android-sandbox limited; use the bundled ADB collector for VINTF/HAL/device-tree/partition details when available. v0.5 uses a stable development signing key and applicationId for reliable upgrades.");
 
                 lastReport = MainActivity.ReportCollector.save(this, report);
                 String sha = sha256(lastReport);

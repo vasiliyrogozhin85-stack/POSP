@@ -19,7 +19,7 @@
     </queries>
 
     <application android:allowBackup="false" android:label="Phone OS Profiler" android:theme="@android:style/Theme.Material.Light.NoActionBar">
-        <activity android:name=".MainActivityV04" android:exported="true">
+        <activity android:name=".MainActivityV05" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
