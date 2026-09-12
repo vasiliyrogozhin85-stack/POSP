@@ -61,7 +61,7 @@ public class MainActivity extends Activity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         int pad = dp(18); root.setPadding(pad,pad,pad,pad);
-        TextView title = new TextView(this); title.setText("Phone OS Profiler v0.2"); title.setTextSize(24);
+        TextView title = new TextView(this); title.setText("Phone OS Profiler v0.3"); title.setTextSize(24);
         TextView desc = new TextView(this); desc.setText("Сбор аппаратного профиля телефона для разработки кастомной ОС. Результат — один JSON-рапорт."); desc.setPadding(0,dp(8),0,dp(12));
         Button scan = new Button(this); scan.setText("СОБРАТЬ И СОХРАНИТЬ РАПОРТ");
         share = new Button(this); share.setText("ПОДЕЛИТЬСЯ РАПОРТОМ"); share.setEnabled(false);
@@ -106,9 +106,9 @@ public class MainActivity extends Activity {
 
         static JSONObject collect(Context c) throws Exception {
             JSONObject r = new JSONObject(); JSONArray errors = new JSONArray();
-            r.put("schema", "phone_os_profiler_report"); r.put("schema_version", 1);
+            r.put("schema", "phone_os_profiler_report"); r.put("schema_version", 2);
             r.put("report_id", UUID.randomUUID().toString()); r.put("generated_at_utc", utcNow());
-            r.put("profiler", obj("name","Phone OS Profiler","version","0.2","mode","normal_app"));
+            r.put("profiler", obj("name","Phone OS Profiler","version","0.3","mode","normal_app"));
             putSection(r,"device",()->device(c),errors); putSection(r,"android",ReportCollector::androidInfo,errors);
             putSection(r,"cpu",ReportCollector::cpu,errors); putSection(r,"memory",()->memory(c),errors);
             putSection(r,"storage",()->storage(c),errors); putSection(r,"display",()->display(c),errors);
@@ -116,7 +116,9 @@ public class MainActivity extends Activity {
             putSection(r,"cameras",()->cameras(c),errors); putSection(r,"network",()->network(c),errors);
             putSection(r,"audio",()->audio(c),errors); putSection(r,"telephony",()->telephony(c),errors);
             putSection(r,"boot",ReportCollector::boot,errors); putSection(r,"treble",ReportCollector::treble,errors);
-            putSection(r,"kernel",ReportCollector::kernel,errors); putSection(r,"features",()->features(c),errors);
+            putSection(r,"kernel",ReportCollector::kernel,errors); putSection(r,"graphics",ReportCollector::graphics,errors);
+            putSection(r,"thermal",ReportCollector::thermal,errors); putSection(r,"partitions",ReportCollector::partitions,errors);
+            putSection(r,"firmware",ReportCollector::firmware,errors); putSection(r,"features",()->features(c),errors);
             putSection(r,"root",ReportCollector::rootInfo,errors); putSection(r,"raw",ReportCollector::raw,errors);
             r.put("errors", errors); return r;
         }
@@ -143,6 +145,28 @@ public class MainActivity extends Activity {
         static JSONObject boot()throws Exception{return obj("verified_boot_state",prop("ro.boot.verifiedbootstate"),"vbmeta_device_state",prop("ro.boot.vbmeta.device_state"),"flash_locked",prop("ro.boot.flash.locked"),"slot_suffix",prop("ro.boot.slot_suffix"),"bootreason",prop("ro.boot.bootreason"),"bootloader",Build.BOOTLOADER);}
         static JSONObject treble()throws Exception{return obj("treble_enabled",prop("ro.treble.enabled"),"ab_update",prop("ro.build.ab_update"),"virtual_ab",prop("ro.virtual_ab.enabled"),"dynamic_partitions",prop("ro.boot.dynamic_partitions"),"vndk_version",prop("ro.vndk.version"),"product_first_api_level",prop("ro.product.first_api_level"),"vendor_api_level",prop("ro.vendor.api_level"));}
         static JSONObject kernel()throws Exception{return obj("proc_version",read1("/proc/version"),"uname_a",exec("uname -a",32768),"cmdline",read("/proc/cmdline",65536),"selinux",exec("getenforce",4096));}
+
+        static JSONObject graphics()throws Exception{return obj(
+                "egl",prop("ro.hardware.egl"),
+                "vulkan",prop("ro.hardware.vulkan"),
+                "gpu_vendor_hint",prop("ro.hardware"),
+                "surfaceflinger",exec("dumpsys SurfaceFlinger 2>/dev/null | head -n 120",131072),
+                "gpu_sysfs",exec("for d in /sys/class/misc/mali* /sys/devices/platform/*gpu* /sys/kernel/debug/mali*; do [ -e \"$d\" ] && echo \"=== $d ===\" && ls -la \"$d\" 2>&1; done",131072));}
+        static JSONObject thermal()throws Exception{return obj(
+                "thermalservice",exec("dumpsys thermalservice 2>/dev/null",131072),
+                "zones",exec("for z in /sys/class/thermal/thermal_zone*; do [ -d \"$z\" ] || continue; echo \"=== $z ===\"; cat \"$z/type\" 2>/dev/null; cat \"$z/temp\" 2>/dev/null; done",131072));}
+        static JSONObject partitions()throws Exception{return obj(
+                "proc_partitions",read("/proc/partitions",131072),
+                "by_name",exec("ls -la /dev/block/by-name 2>&1; ls -la /dev/block/platform/bootdevice/by-name 2>&1",131072),
+                "dm",exec("ls -la /dev/block/dm-* 2>&1",65536));}
+        static JSONObject firmware()throws Exception{return obj(
+                "baseband",prop("gsm.version.baseband"),
+                "radio",prop("ro.boot.radio"),
+                "vendor_build_fingerprint",prop("ro.vendor.build.fingerprint"),
+                "odm_build_fingerprint",prop("ro.odm.build.fingerprint"),
+                "product_build_fingerprint",prop("ro.product.build.fingerprint"),
+                "hardware_sku",prop("ro.boot.hardware.sku"),
+                "boot_hardware",prop("ro.boot.hardware"));}
         static JSONObject features(Context c)throws Exception{JSONArray a=new JSONArray();FeatureInfo[] fs=c.getPackageManager().getSystemAvailableFeatures();if(fs!=null)for(FeatureInfo f:fs)a.put(obj("name",f.name,"version",f.version,"gles_version",f.getGlEsVersion()));return obj("items",a);}
         static JSONObject rootInfo()throws Exception{JSONArray a=new JSONArray();String[] ps={"/system/bin/su","/system/xbin/su","/sbin/su","/su/bin/su","/data/adb/magisk"};boolean found=false;for(String s:ps){boolean e=new File(s).exists();a.put(obj("path",s,"exists",e));found|=e;}return obj("root_artifact_found",found,"which_su",exec("which su",4096),"paths",a);}
         static JSONObject raw()throws Exception{return obj("getprop",exec("getprop",1048576),"proc_partitions",read("/proc/partitions",131072),"proc_filesystems",read("/proc/filesystems",131072),"proc_modules",read("/proc/modules",524288),"sys_block",exec("ls -la /sys/block 2>&1",65536));}
