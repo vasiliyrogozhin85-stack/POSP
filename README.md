@@ -68,3 +68,19 @@ Push to `main`/`master` or start the workflow manually. The workflow builds:
 `app/build/outputs/apk/debug/app-debug.apk`
 
 and uploads it as the artifact `PhoneOSProfiler-v0.3-debug`.
+
+## v0.4 additions
+- Dedicated **Send via Bluetooth** button for the generated JSON report.
+- Uses Android's system Bluetooth/OBEX share handler through `ACTION_SEND` + `FileProvider`; falls back to the normal share chooser when an OEM Bluetooth component cannot be resolved directly.
+- Runtime request for `READ_PHONE_STATE`; on Android 12+ also requests `BLUETOOTH_CONNECT` when collecting Bluetooth adapter metadata.
+- Adds `permissions`, `bluetooth`, `transport_capabilities`, and `collection_notes` to the report.
+- Report schema version is now 3; application version is 0.4.
+
+### Recommended next improvements after v0.4
+1. Merge the normal-app and ADB reports into one signed/hashed bundle.
+2. Collect VINTF manifests/matrices and `lshal` into structured JSON rather than raw text.
+3. Parse `/dev/block/by-name`, dynamic partitions and slot metadata into a normalized partition table.
+4. Add structured GPU, thermal-zone and input-device sections.
+5. Add Wi-Fi/Bluetooth chipset/firmware hints from properties and ADB dumpsys output.
+6. Add report completeness scoring so missing privileged data is obvious.
+7. Add export as ZIP containing JSON plus raw diagnostic attachments.

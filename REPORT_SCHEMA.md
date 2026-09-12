@@ -24,3 +24,12 @@ Unavailable data is kept as an explicit `unavailable`/error string rather than s
 - `commands`: structured results for low-level ADB shell probes
 
 Each command result contains the command, exit code, stdout and stderr. This makes the report lossless and easy to analyze automatically.
+
+## Schema v3 / app v0.4
+New top-level fields:
+- `permissions`: runtime permission state relevant to collection.
+- `bluetooth`: Bluetooth adapter presence/state/name when accessible.
+- `transport_capabilities`: supported report delivery methods.
+- `collection_notes`: limitations or instructions for completing the profile with the ADB collector.
+
+Bluetooth transfer is a transport feature and does not modify the report payload. The app sends the report URI with read permission using Android `ACTION_SEND`, preferring a Bluetooth handler and falling back to the system chooser.
