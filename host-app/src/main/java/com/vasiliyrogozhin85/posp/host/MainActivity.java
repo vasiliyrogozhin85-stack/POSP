@@ -97,7 +97,9 @@ public class MainActivity extends Activity {
             return;
         }
 
-        try (UsbDeviceConnection c = usbManager.openDevice(currentDevice)) {
+        UsbDeviceConnection c = null;
+        try {
+            c = usbManager.openDevice(currentDevice);
             if (c == null) throw new IllegalStateException("openDevice() вернул null");
             byte[] proto = new byte[2];
             int r = c.controlTransfer(0xC0, 51, 0, 0, proto, 2, 1000);
@@ -113,6 +115,10 @@ public class MainActivity extends Activity {
             info("POSP Client Link", "Команда перехода в Android Open Accessory отправлена. DOOGEE должен переподключиться по USB и открыть POSP Client.");
         } catch (Exception e) {
             info("Client Link не запущен", "Устройство не приняло Android Open Accessory: " + e.getMessage());
+        } finally {
+            if (c != null) {
+                c.close();
+            }
         }
     }
 
