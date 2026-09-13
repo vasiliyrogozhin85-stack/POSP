@@ -6,5 +6,3 @@ local.properties
 .DS_Store
 *.apk
 *.aab
-*.jks
-*.keystore

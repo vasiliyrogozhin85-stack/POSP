@@ -1,0 +1,6 @@
+<resources>
+    <usb-accessory
+        manufacturer="POSP"
+        model="POSP Client Link"
+        version="1.0" />
+</resources>
