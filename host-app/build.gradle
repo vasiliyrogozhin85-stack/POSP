@@ -1,31 +1,26 @@
-plugins {
-    id "com.android.application"
-}
-
+plugins { id "com.android.application" }
 android {
     namespace "com.vasiliyrogozhin85.posp.host"
     compileSdk 36
-
     defaultConfig {
         applicationId "com.vasiliyrogozhin85.posp.host"
         minSdk 26
         targetSdk 36
-        versionCode 8
-        versionName "0.8"
+        versionCode 90
+        versionName "0.9"
     }
-
-    buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
+    signingConfigs {
+        pospDev {
+            storeFile file("signing/posp-host-dev.jks")
+            storePassword "posphost2026"
+            keyAlias "posphostdev"
+            keyPassword "posphost2026"
         }
     }
-
+    buildTypes { debug { signingConfig signingConfigs.pospDev } }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
 }
-
-dependencies {
-    implementation project(":common")
-}
+dependencies { implementation project(":common") }
