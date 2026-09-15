@@ -6,8 +6,8 @@ android {
         applicationId "com.vasiliyrogozhin85.posp.client"
         minSdk 26
         targetSdk 36
-        versionCode 3
-        versionName "0.3"
+        versionCode 100
+        versionName "1.0"
     }
     signingConfigs {
         pospDev {

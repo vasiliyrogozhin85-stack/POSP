@@ -1,16 +1,23 @@
-# POSP Research Host v0.10 + Client v0.3
+# POSP Research Host + Client v1.0
 
-Пошаговый комплекс для безопасного сбора данных DOOGEE S97 Pro перед началом разработки POSP OS.
+Production-candidate research suite for collecting read-only device information before POSP OS bring-up.
 
-## Модули Host
-- Подключение: подключить / проверить связь / отключить.
-- Режимы загрузки: Android, Bootloader/Fastboot, Fastbootd, Recovery.
-- Сбор данных: отдельный read-only профиль для каждого режима.
-- Отчёт: единый `POSP_OS_Research_Bundle.zip` + `missing_data.txt`.
-- Полное исследование: последовательный мастер от подключения до отключения.
+## Host v1.0
+- Separate Connection, Boot modes, Data collection, Reports modules.
+- Full research wizard: Android -> Fastboot -> Fastbootd -> Recovery -> final bundle.
+- USB lifecycle recovery: stale ADB/AOA transports are closed on detach and rediscovered after attach.
+- Read-only Fastboot research only; no flash/erase/unlock automation.
+- Persistent staged research files and `missing_data.txt`.
+- Final `POSP_OS_Research_Bundle_*.zip` export to Download/POSPReports.
 
-## Интерфейс
-Тёмный rugged/scifi стиль презентации POSP: Host — сине-бирюзовый, Client — зелёный, крупные карточки, статус соединения, нижняя навигация и пошаговый мастер.
+## Client v1.0
+- Android hardware/software profile, sensors, cameras, memory, storage, display, battery and build data.
+- AOA Client Link with PING/PONG and report transfer.
+- Session logs and local reports.
 
-## Безопасность
-Research mode не выполняет unlock, erase, flash и не пишет критические MediaTek-разделы. Fastboot-сбор использует только `getvar`. Перезагрузка выполняется отдельной подтверждаемой командой.
+## Build
+`gradle :host-app:assembleDebug :client-app:assembleDebug`
+
+Package IDs remain unchanged for upgrade compatibility:
+- `com.vasiliyrogozhin85.posp.host`
+- `com.vasiliyrogozhin85.posp.client`

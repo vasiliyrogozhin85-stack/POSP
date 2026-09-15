@@ -19,7 +19,7 @@ public class MainActivity extends Activity {
     private UsbManager usb;private UsbAccessory acc;private ParcelFileDescriptor pfd;private FileInputStream in;private FileOutputStream out;private volatile boolean running;
     private TextView status,log;private File lastReport;private ReportLogger reporter;private Thread.UncaughtExceptionHandler oldCrash;private boolean researchRxRegistered; private final BroadcastReceiver researchRx=new BroadcastReceiver(){public void onReceive(Context c,Intent i){report("research broadcast "+i.getAction());collect(false);}};
 
-    @Override public void onCreate(Bundle b){super.onCreate(b);reporter=new ReportLogger(this,"Client_v0.3");installCrash();usb=(UsbManager)getSystemService(USB_SERVICE);setContentView(ui());registerResearchReceiver();report("onCreate");detect(getIntent());}
+    @Override public void onCreate(Bundle b){super.onCreate(b);reporter=new ReportLogger(this,"Client_v1.0");installCrash();usb=(UsbManager)getSystemService(USB_SERVICE);setContentView(ui());registerResearchReceiver();report("onCreate");detect(getIntent());}
     @Override protected void onNewIntent(Intent i){super.onNewIntent(i);setIntent(i);report("onNewIntent "+i.getAction());detect(i);}
     @Override protected void onResume(){super.onResume();report("onResume");if(!running)detect(getIntent());}
     @Override protected void onStop(){report("onStop");String p=reporter.exportToDownloads("autosave");report("autosave="+p);super.onStop();}
