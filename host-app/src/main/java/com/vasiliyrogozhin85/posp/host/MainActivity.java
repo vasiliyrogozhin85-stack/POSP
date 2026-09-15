@@ -1,106 +1,51 @@
 package com.vasiliyrogozhin85.posp.host;
-import android.app.*;
-import android.os.*;
-import android.hardware.usb.*;
-import android.content.*;
-import android.graphics.Color;
-import android.view.*;
-import android.widget.*;
-import com.vasiliyrogozhin85.posp.common.*;
-import java.io.*;
-import java.util.*;
-
-public class MainActivity extends Activity {
-    private static final String USB_PERMISSION="com.vasiliyrogozhin85.posp.host.USB_PERMISSION";
-    private final int BG=Color.rgb(7,17,31),SURF=Color.rgb(13,27,42),ACC=Color.rgb(45,168,255),TEXT=Color.rgb(242,247,255),MUTED=Color.rgb(169,184,199);
-    private UsbManager usb; private UsbDevice device; private AdbUsbClient adb; private AoaHostConnection aoa;
-    private TextView status,log,step; private ReportLogger reporter; private boolean rec;
-    private Thread.UncaughtExceptionHandler oldCrash;
-
-    private final BroadcastReceiver usbRx=new BroadcastReceiver(){public void onReceive(Context c,Intent i){report("USB event "+i.getAction());findDevice();}};
-
-    @Override public void onCreate(Bundle b){
-        super.onCreate(b); reporter=new ReportLogger(this,"Host_v0.9"); installCrashHandler();
-        usb=(UsbManager)getSystemService(USB_SERVICE); setContentView(ui()); registerUsb(); report("onCreate"); findDevice();
-    }
-    @Override protected void onStart(){super.onStart();report("onStart");}
-    @Override protected void onStop(){report("onStop");String p=reporter.exportToDownloads("autosave");report("autosave="+p);super.onStop();}
-    @Override protected void onDestroy(){report("onDestroy");closeLinks();if(rec)unregisterReceiver(usbRx);super.onDestroy();}
-
-    private void installCrashHandler(){oldCrash=Thread.getDefaultUncaughtExceptionHandler();Thread.setDefaultUncaughtExceptionHandler((t,e)->{reporter.throwable("uncaught/"+t.getName(),e);reporter.exportToDownloads("CRASH");if(oldCrash!=null)oldCrash.uncaughtException(t,e);});}
-
-    private View ui(){
-        ScrollView sv=new ScrollView(this);sv.setBackgroundColor(BG);LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.VERTICAL);r.setPadding(dp(16),dp(16),dp(16),dp(24));sv.addView(r);
-        r.addView(tv("▲ POSP Host",28,TEXT,true));r.addView(tv("v0.9 • мастер подключения и диагностики",13,MUTED,false));
-        step=tv("ПОРЯДОК: 1) Client запущен на DOOGEE → 2) Host: Найти DOOGEE → 3) Подключить ADB → 4) принять RSA на DOOGEE → 5) Проверка ADB → дальше нужная команда.",15,TEXT,true);r.addView(card(step),top(12));
-        status=tv("Поиск устройства…",15,TEXT,true);r.addView(card(status),top(8));
-
-        r.addView(section("Шаг 1 — подготовка"));
-        r.addView(btn("1. Найти DOOGEE",v->findDevice()));
-        r.addView(btn("2. Подключить ADB",v->connectAdb()));
-        r.addView(btn("3. Проверить ADB",v->adbShell("echo POSP_ADB_OK && getprop ro.product.model",false)));
-
-        r.addView(section("Управление DOOGEE через ADB"));
-        r.addView(btn("Перезагрузить DOOGEE в Android",v->confirmAdb("Перезагрузка DOOGEE","reboot")));
-        r.addView(btn("Перезагрузить в Bootloader",v->confirmAdb("Bootloader","reboot bootloader")));
-        r.addView(btn("Перезагрузить в Recovery",v->confirmAdb("Recovery","reboot recovery")));
-        r.addView(btn("Перезагрузить в Fastbootd",v->confirmAdb("Fastbootd","reboot fastboot")));
-        r.addView(btn("Перезапустить POSP Client",v->adbShell("am force-stop com.vasiliyrogozhin85.posp.client; sleep 1; am start -n com.vasiliyrogozhin85.posp.client/.MainActivity",false)));
-
-        r.addView(section("Client Link — отчёты по USB"));
-        r.addView(tv("Используйте после проверки ADB. На некоторых телефонах AOA меняет USB-режим. Если ADB пропал, нажмите «Найти DOOGEE» и «Подключить ADB» снова.",13,MUTED,false));
-        r.addView(btn("4. Запустить Client USB (AOA)",v->startAoa()));
-        r.addView(btn("5. Открыть Client Link",v->openAoa()));
-        r.addView(btn("6. Проверить связь PING",v->sendAoa(Protocol.PING)));
-        r.addView(btn("7. Запросить отчёт Client",v->sendAoa(Protocol.COLLECT_REPORT)));
-
-        r.addView(section("Диагностика"));
-        r.addView(btn("Экспортировать отчёт Host в Download/POSPReports",v->{String p=reporter.exportToDownloads("manual");info("Отчёт Host",p);}));
-        r.addView(btn("? Подробная инструкция",v->showHelp()));
-
-        log=tv("Журнал:\n",12,MUTED,false);log.setTextIsSelectable(true);r.addView(card(log),top(8));
-        return sv;
-    }
-
-    private void registerUsb(){IntentFilter f=new IntentFilter();f.addAction(USB_PERMISSION);f.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);f.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);if(Build.VERSION.SDK_INT>=33)registerReceiver(usbRx,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(usbRx,f);rec=true;}
-    private void findDevice(){
-        device=null;
-        for(UsbDevice d:usb.getDeviceList().values()){
-            String desc=UsbModeDetector.describe(d);report("USB "+hex(d.getVendorId())+":"+hex(d.getProductId())+" "+desc+" ifaces="+d.getInterfaceCount());
-            if(UsbModeDetector.hasAdb(d)){device=d;break;}
-            if(device==null&&(UsbModeDetector.isAccessory(d)||UsbModeDetector.hasFastboot(d)))device=d;
-        }
-        if(device==null){status.setText("● DOOGEE не найден. Проверьте OTG/кабель/USB debugging.");status.setTextColor(MUTED);return;}
-        status.setText("● USB найден: "+hex(device.getVendorId())+":"+hex(device.getProductId())+"\n"+UsbModeDetector.describe(device)+"\nUSB permission="+usb.hasPermission(device));status.setTextColor(ACC);
-        if(!usb.hasPermission(device))requestPermission();
-    }
-    private void requestPermission(){if(device==null)return;PendingIntent pi=PendingIntent.getBroadcast(this,0,new Intent(USB_PERMISSION),PendingIntent.FLAG_IMMUTABLE);usb.requestPermission(device,pi);report("USB permission requested");}
-    private void connectAdb(){
-        if(device==null||!UsbModeDetector.hasAdb(device)){info("ADB не найден","Убедитесь, что на DOOGEE включена «Отладка по USB». После AOA может потребоваться переподключение.");return;}
-        if(!usb.hasPermission(device)){requestPermission();return;}
-        runBg("ADB connect",()->{if(adb!=null)adb.close();adb=AdbUsbClient.open(this,usb,device);adb.connect();report("ADB CONNECTED");runOnUiThread(()->{status.setText("● ADB подключён. Теперь работают перезагрузка и команды.");status.setTextColor(ACC);info("ADB подключён","Если на DOOGEE появлялся RSA-запрос, его нужно разрешить. Кнопки перезагрузки теперь активны.");});});
-    }
-    private void adbShell(String cmd,boolean noResult){runBg("ADB shell "+cmd,()->{if(adb==null)throw new IOException("Сначала нажмите «2. Подключить ADB»");String out=adb.shell(cmd,15000);report("ADB result: "+out.replace('\n',' '));if(!noResult)runOnUiThread(()->info("ADB ответ",out.trim().isEmpty()?"Команда отправлена.":out));});}
-    private void confirmAdb(String title,String cmd){new AlertDialog.Builder(this).setTitle(title).setMessage("Команда будет отправлена по ADB: "+cmd+"\n\nПродолжить?").setNegativeButton("Отмена",null).setPositiveButton("Да",(d,w)->adbShell(cmd,true)).show();}
-    private void startAoa(){
-        if(device==null){info("Нет устройства","Нажмите «1. Найти DOOGEE».");return;}if(!usb.hasPermission(device)){requestPermission();return;}
-        if(UsbModeDetector.isAccessory(device)){openAoa();return;}
-        runBg("AOA start",()->{UsbDeviceConnection c=null;try{c=usb.openDevice(device);if(c==null)throw new IOException("openDevice=null");byte[]p=new byte[2];int n=c.controlTransfer(0xC0,51,0,0,p,2,1000);if(n<0)throw new IOException("GET_PROTOCOL rejected");aoaStr(c,0,"POSP");aoaStr(c,1,"POSP Client Link");aoaStr(c,2,"POSP diagnostics bridge");aoaStr(c,3,"1.0");aoaStr(c,4,"");aoaStr(c,5,"POSP-HOST");if(c.controlTransfer(0x40,53,0,0,null,0,1000)<0)throw new IOException("AOA START rejected");report("AOA START sent");runOnUiThread(()->info("Client USB","DOOGEE переподключится. Подождите 2–5 секунд, затем нажмите «1. Найти DOOGEE» и «5. Открыть Client Link»."));}finally{if(c!=null)c.close();}});
-    }
-    private void aoaStr(UsbDeviceConnection c,int i,String s)throws Exception{byte[]b=(s+"\0").getBytes("UTF-8");if(c.controlTransfer(0x40,52,0,i,b,b.length,1000)<0)throw new IOException("AOA string "+i);}
-    private void openAoa(){findDevice();if(device==null||!UsbModeDetector.isAccessory(device)){info("Accessory не найден","Сначала нажмите «4. Запустить Client USB (AOA)», подождите переподключения и повторите.");return;}if(!usb.hasPermission(device)){requestPermission();return;}runBg("AOA open",()->{if(aoa!=null)aoa.close();aoa=AoaHostConnection.open(usb,device);File base=getExternalFilesDir(null);if(base==null)base=getFilesDir();File dir=new File(base,"client_reports");aoa.start(dir,new AoaHostConnection.Listener(){public void onLine(String s){report("CLIENT "+s);}public void onReport(File f){report("CLIENT REPORT "+f.getAbsolutePath());runOnUiThread(()->info("Отчёт Client получен",f.getName()+"\nОн сохранён внутри Host. Для анализа проще также экспортировать отчёт из самого Client в Download/POSPReports."));}public void onError(String s){report("AOA ERROR "+s);}});report("AOA link opened");sendAoa(Protocol.PING);});}
-    private void sendAoa(String s){runBg("AOA send "+s,()->{if(aoa==null)throw new IOException("Сначала нажмите «5. Открыть Client Link»");aoa.sendLine(s);report("HOST->CLIENT "+s);});}
-    private void runBg(String name,Task t){new Thread(()->{try{report(name+" START");t.run();report(name+" OK");}catch(Exception e){reporter.throwable(name,e);runOnUiThread(()->info("Ошибка",name+"\n"+e.getMessage()));}},name).start();}
-    private interface Task{void run()throws Exception;}
-    private void closeLinks(){try{if(adb!=null)adb.close();}catch(Exception ignored){}try{if(aoa!=null)aoa.close();}catch(Exception ignored){}}
-    private void report(String s){reporter.line(s);runOnUiThread(()->{if(log!=null)log.append(s+"\n");});}
-    private void showHelp(){info("Порядок работы","НА DOOGEE:\n1. Включите «Отладка по USB».\n2. Запустите POSP Client и оставьте его открытым.\n\nНА HOST:\n3. Подключите телефоны OTG-кабелем.\n4. Нажмите «1. Найти DOOGEE».\n5. Нажмите «2. Подключить ADB».\n6. Если DOOGEE покажет запрос RSA — отметьте «Всегда разрешать» и нажмите OK.\n7. Нажмите «3. Проверить ADB».\n\nПЕРЕЗАГРУЗКА:\n8. После успешной проверки ADB можно нажимать «Перезагрузить DOOGEE…», Bootloader, Recovery или Fastbootd.\n\nОТЧЁТЫ CLIENT LINK:\n9. Нажмите «4. Запустить Client USB (AOA)».\n10. Подождите переподключения USB.\n11. Нажмите «1. Найти DOOGEE».\n12. Нажмите «5. Открыть Client Link».\n13. Нажмите «6. Проверить связь PING».\n14. Нажмите «7. Запросить отчёт Client».\n\nОТЧЁТЫ ДЛЯ АНАЛИЗА:\nHost и Client автоматически создают сессионный отчёт при запуске и сохраняют снимок при уходе приложения в фон. В обоих приложениях нажмите «Экспортировать отчёт». Затем загрузите сюда файлы из Download/POSPReports.");}
-    private void info(String t,String m){new AlertDialog.Builder(this).setTitle(t).setMessage(m).setPositiveButton("Понятно",null).show();}
-    private View card(View v){LinearLayout l=new LinearLayout(this);l.setPadding(dp(14),dp(14),dp(14),dp(14));l.setBackgroundColor(SURF);l.addView(v);return l;}
-    private TextView section(String s){TextView v=tv(s,17,TEXT,true);v.setPadding(0,dp(18),0,dp(6));return v;}
-    private Button btn(String s,View.OnClickListener c){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextColor(TEXT);b.setBackgroundColor(Color.rgb(18,40,58));b.setOnClickListener(c);b.setLayoutParams(top(6));return b;}
-    private TextView tv(String s,int z,int c,boolean bold){TextView v=new TextView(this);v.setText(s);v.setTextSize(z);v.setTextColor(c);if(bold)v.setTypeface(null,android.graphics.Typeface.BOLD);return v;}
-    private LinearLayout.LayoutParams top(int n){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=dp(n);return p;}
-    private int dp(int x){return (int)(x*getResources().getDisplayMetrics().density);}
-    private String hex(int x){return String.format(Locale.US,"%04X",x);}
+import android.app.*;import android.os.*;import android.hardware.usb.*;import android.content.*;import android.graphics.*;import android.graphics.drawable.GradientDrawable;import android.view.*;import android.widget.*;
+import com.vasiliyrogozhin85.posp.common.*;import java.io.*;import java.util.*;
+public class MainActivity extends Activity{
+ private static final String USB_PERMISSION="com.vasiliyrogozhin85.posp.host.USB_PERMISSION";
+ private final int BG=Color.rgb(5,14,27),SURF=Color.rgb(11,28,45),SURF2=Color.rgb(15,38,59),BLUE=Color.rgb(41,174,255),TEXT=Color.rgb(242,248,255),MUTED=Color.rgb(150,174,195),GREEN=Color.rgb(61,224,145),WARN=Color.rgb(255,190,73);
+ private UsbManager usb;private UsbDevice device;private AdbUsbClient adb;private AoaHostConnection aoa;private ReportLogger reporter;private ResearchStore store;private LinearLayout body;private TextView state,progress,log;private boolean rec;private int stage=0;
+ private final BroadcastReceiver usbRx=new BroadcastReceiver(){public void onReceive(Context c,Intent i){String a=i.getAction();report("USB event "+a);if(UsbManager.ACTION_USB_DEVICE_DETACHED.equals(a)){closeAdb();closeAoa();}findDevice(false);}};
+ @Override public void onCreate(Bundle b){super.onCreate(b);reporter=new ReportLogger(this,"Host_v0.10");try{store=new ResearchStore(this);}catch(Exception e){throw new RuntimeException(e);}usb=(UsbManager)getSystemService(USB_SERVICE);setContentView(shell());registerUsb();findDevice(false);showHome();report("onCreate research="+store.root);}
+ @Override protected void onStop(){report("onStop");reporter.exportToDownloads("autosave");super.onStop();}
+ @Override protected void onDestroy(){closeAll();if(rec)unregisterReceiver(usbRx);super.onDestroy();}
+ private View shell(){LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BG);root.setPadding(dp(14),dp(14),dp(14),dp(10));TextView h=tv("▲  POSP RESEARCH HOST",24,TEXT,true);root.addView(h);root.addView(tv("v0.10  •  исследование устройства для разработки ОС",12,MUTED,false));state=tv("USB —  ADB —  CLIENT —",13,TEXT,true);root.addView(card(state),lpTop(10));progress=tv("Сессия: 0/5 этапов",12,MUTED,false);root.addView(progress,lpTop(6));ScrollView sv=new ScrollView(this);body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);sv.addView(body);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));LinearLayout nav=new LinearLayout(this);nav.setGravity(Gravity.CENTER);nav.addView(navBtn("Главная",v->showHome()));nav.addView(navBtn("Подключение",v->showConnect()));nav.addView(navBtn("Режимы",v->showModes()));nav.addView(navBtn("Сбор",v->showCollect()));nav.addView(navBtn("Отчёт",v->showReport()));root.addView(nav);return root;}
+ private void clear(String title,String sub){body.removeAllViews();body.addView(tv(title,23,TEXT,true),lpTop(14));body.addView(tv(sub,13,MUTED,false),lpTop(3));}
+ private void showHome(){clear("Центр исследования","Пошаговый мастер: подключение → проверка → Android → Fastboot → Fastbootd → Recovery → отчёт");body.addView(hero("DOOGEE S97 Pro","Сбор аппаратного профиля k85v1_64 / MT6785",BLUE),lpTop(12));body.addView(tile("▶  Полное исследование телефона","Продолжить с текущего этапа",v->showWizard()),lpTop(10));body.addView(tile("🔌  Подключение","Подключить и проверить связь",v->showConnect()));body.addView(tile("↻  Режимы загрузки","Android • Bootloader/Fastboot • Fastbootd • Recovery",v->showModes()));body.addView(tile("▣  Сбор данных","Отдельные read-only наборы для каждого режима",v->showCollect()));body.addView(tile("▤  Отчёты","POSP_OS_Research_Bundle.zip + missing_data",v->showReport()));}
+ private void showConnect(){clear("Подключение","Отдельный модуль соединения. Никаких диагностических команд до проверки связи.");body.addView(tile("1. Подключить","Найти DOOGEE, получить USB permission и определить режим",v->{findDevice(true);}),lpTop(12));body.addView(tile("2. Проверить связь","ADB: автоматическое подключение + тест. Accessory: Client Link + PING. Fastboot: getvar product.",v->verifyLink()));body.addView(tile("Отключить соединение","Закрыть ADB/Client Link и очистить транспорт",v->{closeAll();updateState("Отключено");}));}
+ private void showModes(){clear("Варианты загрузки клиента","Client работает только в Android. В остальных режимах телефоном управляет Host.");body.addView(mode("Android","Обычная система + Client + ADB",()->rebootAdb("reboot")),lpTop(12));body.addView(mode("Bootloader / Fastboot","Загрузчик; сбор getvar, A/B, AVB и разделов",()->rebootAdb("reboot bootloader")));body.addView(mode("Fastbootd","Userspace fastboot для dynamic/logical partitions",()->rebootAdb("reboot fastboot")));body.addView(mode("Recovery","Recovery / возможный ADB",()->rebootAdb("reboot recovery")));body.addView(card(tv("После перезагрузки Host ждёт повторного USB-подключения. Старый ADB transport автоматически закрывается при DETACHED — исправление ошибки USB write -1/24.",13,MUTED,false)),lpTop(10));}
+ private void showCollect(){clear("Сбор данных","Выберите текущий режим телефона. Сбор не выполняет unlock, erase или flash.");body.addView(tile("Собрать Android + Client","getprop, kernel, mounts, CPU, memory, storage, services, Treble/VNDK, A/B, AVB, HAL/VINTF, thermal, sensors и Client report",v->collectAndroid()),lpTop(12));body.addView(tile("Собрать Fastboot","getvar + raw variables: product, secure, unlocked, slots, partition sizes/types",v->collectFastboot("fastboot")));body.addView(tile("Собрать Fastbootd","userspace fastboot + logical/dynamic partition profile",v->collectFastboot("fastbootd")));body.addView(tile("Собрать Recovery","ADB recovery profile, mounts, properties, /tmp/recovery.log если доступен",v->collectRecovery()));}
+ private void showReport(){clear("Отчёт исследования","Все этапы сохраняются сразу. Финальный ZIP можно прислать в чат для анализа перед разработкой ОС.");body.addView(tile("Проверить полноту","Показать выполненные этапы и недостающие данные",v->info("Прогресс",progress.getText().toString()+"\nКаталог: "+store.root)),lpTop(12));body.addView(tile("Сохранить POSP_OS_Research_Bundle.zip","Экспорт в Download/POSPReports",v->runBg("export bundle",()->{String p=store.exportZip();runOnUiThread(()->info("Отчёт сохранён",p));})));body.addView(tile("Экспорт журнала Host","Сессионный TXT в Download/POSPReports",v->info("Журнал",reporter.exportToDownloads("manual"))));body.addView(tile("Отключить соединение","Закрыть все USB-сессии после сохранения",v->{closeAll();updateState("Сессия завершена");}));}
+ private void showWizard(){clear("Полное исследование","Выполняйте только текущую большую кнопку. После каждого шага приложение предложит следующий.");String[] names={"1. Подключиться и проверить связь","2. Собрать данные Android","3. Перейти в Fastboot и собрать","4. Перейти в Fastbootd и собрать","5. Перейти в Recovery и собрать","6. Сохранить отчёт и отключиться"};for(int i=0;i<names.length;i++){final int x=i;Button b=big(names[i],v->wizardStep(x));b.setEnabled(i<=stage);body.addView(b,lpTop(i==0?12:7));}body.addView(card(tv("Текущий этап: "+stage+". Результаты предыдущих режимов уже сохранены и не потеряются при перезагрузке.",13,MUTED,false)),lpTop(10));}
+ private void wizardStep(int x){if(x==0)verifyLink();else if(x==1)collectAndroid();else if(x==2){if(isFastboot())collectFastboot("fastboot");else rebootAdb("reboot bootloader");}else if(x==3){if(isFastboot())collectFastboot("fastbootd");else info("Fastbootd","Сначала устройство должно быть в Fastboot/Fastbootd.");}else if(x==4){if(UsbModeDetector.hasAdb(device))collectRecovery();else info("Recovery","Перейдите в Recovery через модуль «Режимы» и дождитесь USB.");}else runBg("finish",()->{String p=store.exportZip();closeAll();runOnUiThread(()->info("Готово",p));});}
+ private void verifyLink(){findDevice(true);if(device==null)return;if(UsbModeDetector.hasAdb(device)){ensureAdb(()->{String r=adb.shell("echo POSP_ADB_OK; getprop ro.product.model",12000);store.text("connection/adb_check.txt",r);runOnUiThread(()->{updateState("ADB ✓  "+r.replace('\n',' '));advance(1);});});}else if(isFastboot())runBg("fastboot verify",()->{try(FastbootUsbClient f=FastbootUsbClient.open(usb,device)){String p=f.getvar("product");store.text("connection/fastboot_check.txt",p);runOnUiThread(()->updateState("FASTBOOT ✓ "+p));}});else if(UsbModeDetector.isAccessory(device))openAoa();else info("Связь","Режим USB пока не распознан.");}
+ private void collectAndroid(){ensureAdb(()->{String[][] q={{"identity","getprop"},{"kernel","uname -a; cat /proc/version"},{"cpu","cat /proc/cpuinfo"},{"memory","cat /proc/meminfo"},{"mounts","cat /proc/mounts"},{"partitions","cat /proc/partitions; ls -l /dev/block/by-name 2>&1"},{"boot","getprop | grep -E 'ro.boot|vbmeta|verified|avb|slot|dynamic|virtual_ab|treble|vndk'"},{"services","service list"},{"storage","df -h"},{"thermal","for f in /sys/class/thermal/thermal_zone*/type /sys/class/thermal/thermal_zone*/temp; do echo $f; cat $f 2>&1; done"},{"vintf","ls -R /vendor/etc/vintf /system/etc/vintf 2>&1"},{"hardware","getprop | grep -E 'hardware|board|platform|mediatek|mtk'"}};for(String[]x:q){try{store.text("android/"+x[0]+".txt",adb.shell(x[1],20000));}catch(Exception e){store.missing("android/"+x[0],e.toString());}}try{adb.shell("am start -n com.vasiliyrogozhin85.posp.client/.MainActivity",8000);adb.shell("am broadcast -a com.vasiliyrogozhin85.posp.client.COLLECT_RESEARCH",8000);}catch(Exception e){store.missing("client_trigger",e.toString());}store.text("android/_complete.txt",new Date().toString());runOnUiThread(()->{advance(2);info("Android ✓","Доступные Android/ADB данные сохранены. Следующий этап — Fastboot.");});});}
+ private void collectFastboot(String folder){findDevice(true);if(!isFastboot()){info("Fastboot не найден","Перезагрузите телефон в Bootloader/Fastboot и дождитесь повторного USB-подключения.");return;}runBg("collect "+folder,()->{String[] vars={"product","serialno","unlocked","secure","critical-unlocked","current-slot","slot-count","is-userspace","userspace-fastboot","max-download-size","version-bootloader","version-baseband","super-partition-name","snapshot-update-status","has-slot:boot","has-slot:vendor_boot","has-slot:dtbo","has-slot:vbmeta","has-slot:recovery","partition-size:boot","partition-size:vendor_boot","partition-size:dtbo","partition-size:vbmeta","partition-size:super","partition-type:boot","partition-type:super","slot-successful:a","slot-successful:b","slot-unbootable:a","slot-unbootable:b"};StringBuilder s=new StringBuilder();try(FastbootUsbClient f=FastbootUsbClient.open(usb,device)){for(String v:vars){try{s.append(v).append('=').append(f.getvar(v)).append('\n');}catch(Exception e){s.append(v).append("=<UNAVAILABLE> ").append(e.getMessage()).append('\n');store.missing(folder+"/"+v,e.getMessage());}}try{s.append("\nRAW getvar:all\n").append(f.getvar("all"));}catch(Exception e){store.missing(folder+"/getvar:all",e.toString());}}store.text(folder+"/fastboot_vars.txt",s.toString());runOnUiThread(()->{advance("fastbootd".equals(folder)?4:3);info(folder+" ✓","Данные режима сохранены.");});});}
+ private void collectRecovery(){ensureAdb(()->{String[] cmds={"getprop","cat /proc/mounts","ls -l /dev/block/by-name 2>&1","cat /tmp/recovery.log 2>&1","ls -R /system /vendor 2>&1 | head -4000"};StringBuilder s=new StringBuilder();for(String q:cmds){s.append("\n$ ").append(q).append('\n');try{s.append(adb.shell(q,20000));}catch(Exception e){s.append("ERROR ").append(e);store.missing("recovery/"+q,e.toString());}}store.text("recovery/recovery.txt",s.toString());runOnUiThread(()->{advance(5);info("Recovery ✓","Доступные данные Recovery сохранены. Теперь сохраните итоговый ZIP.");});});}
+ private void rebootAdb(String cmd){ensureAdb(()->{report("REBOOT "+cmd);adb.shell(cmd,5000);closeAdb();runOnUiThread(()->updateState("Ожидание повторного USB-подключения…"));});}
+ private void ensureAdb(Task after){findDevice(false);if(device==null||!UsbModeDetector.hasAdb(device)){runOnUiThread(()->info("ADB недоступен","Подключите телефон в Android/Recovery с ADB."));return;}if(!usb.hasPermission(device)){requestPermission();return;}runBg("ensure ADB",()->{if(adb==null){adb=AdbUsbClient.open(this,usb,device);adb.connect();}after.run();});}
+ private void openAoa(){if(device==null||!UsbModeDetector.isAccessory(device))return;runBg("AOA open",()->{if(aoa!=null)aoa.close();aoa=AoaHostConnection.open(usb,device);File d=new File(store.root,"client");aoa.start(d,new AoaHostConnection.Listener(){public void onLine(String s){report("CLIENT "+s);if(s.contains("PONG"))runOnUiThread(()->updateState("CLIENT ✓ PONG"));}public void onReport(File f){report("CLIENT REPORT "+f);advance(2);}public void onError(String s){report("AOA ERROR "+s);}});aoa.sendLine(Protocol.PING);});}
+ private void registerUsb(){IntentFilter f=new IntentFilter();f.addAction(USB_PERMISSION);f.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);f.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);if(Build.VERSION.SDK_INT>=33)registerReceiver(usbRx,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(usbRx,f);rec=true;}
+ private void findDevice(boolean notify){device=null;for(UsbDevice d:usb.getDeviceList().values()){if(UsbModeDetector.hasAdb(d)||UsbModeDetector.hasFastboot(d)||UsbModeDetector.isAccessory(d)){device=d;break;}}if(device==null){updateState("USB —  устройство не найдено");if(notify)info("Подключение","DOOGEE не найден. Проверьте OTG и кабель.");return;}if(!usb.hasPermission(device)){requestPermission();updateState("USB ✓  требуется разрешение");return;}updateState("USB ✓  "+UsbModeDetector.describe(device));}
+ private void requestPermission(){if(device==null)return;usb.requestPermission(device,PendingIntent.getBroadcast(this,0,new Intent(USB_PERMISSION),PendingIntent.FLAG_IMMUTABLE));}
+ private boolean isFastboot(){return device!=null&&UsbModeDetector.hasFastboot(device);}
+ private void closeAdb(){try{if(adb!=null)adb.close();}catch(Exception ignored){}adb=null;}
+ private void closeAoa(){try{if(aoa!=null)aoa.close();}catch(Exception ignored){}aoa=null;}
+ private void closeAll(){closeAdb();closeAoa();device=null;}
+ private void advance(int s){stage=Math.max(stage,s);runOnUiThread(()->progress.setText("Сессия: "+Math.min(stage,5)+"/5 этапов"));}
+ private void updateState(String s){runOnUiThread(()->state.setText(s));}
+ private void runBg(String n,Task t){new Thread(()->{try{report(n+" START");t.run();report(n+" OK");}catch(Exception e){reporter.throwable(n,e);runOnUiThread(()->info("Ошибка",n+"\n"+e.getMessage()));}},n).start();}
+ private interface Task{void run()throws Exception;}
+ private void report(String s){reporter.line(s);runOnUiThread(()->{if(log!=null)log.append(s+"\n");});}
+ private View hero(String a,String b,int c){LinearLayout x=new LinearLayout(this);x.setOrientation(LinearLayout.VERTICAL);x.setPadding(dp(18),dp(18),dp(18),dp(18));x.setBackground(round(SURF,18,c,2));x.addView(tv("●  "+a,19,TEXT,true));x.addView(tv(b,13,MUTED,false),lpTop(5));return x;}
+ private View tile(String a,String b,View.OnClickListener l){LinearLayout x=new LinearLayout(this);x.setOrientation(LinearLayout.VERTICAL);x.setPadding(dp(16),dp(14),dp(16),dp(14));x.setBackground(round(SURF2,16,Color.rgb(25,67,94),1));x.setOnClickListener(l);x.addView(tv(a,16,TEXT,true));x.addView(tv(b,12,MUTED,false),lpTop(4));x.setLayoutParams(lpTop(7));return x;}
+ private View mode(String a,String b,Task t){return tile("↻  "+a,b,v->new AlertDialog.Builder(this).setTitle(a).setMessage("Перезагрузить устройство в этот режим?").setNegativeButton("Отмена",null).setPositiveButton("Продолжить",(d,w)->{try{t.run();}catch(Exception e){info("Ошибка",e.toString());}}).show());}
+ private Button big(String s,View.OnClickListener l){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextColor(TEXT);b.setTextSize(15);b.setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);b.setPadding(dp(16),0,dp(12),0);b.setBackground(round(Color.rgb(12,55,83),16,BLUE,1));b.setOnClickListener(l);b.setMinHeight(dp(58));return b;}
+ private Button navBtn(String s,View.OnClickListener l){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextSize(10);b.setTextColor(MUTED);b.setBackgroundColor(Color.TRANSPARENT);b.setOnClickListener(l);b.setLayoutParams(new LinearLayout.LayoutParams(0,dp(48),1));return b;}
+ private View card(View v){LinearLayout x=new LinearLayout(this);x.setPadding(dp(14),dp(12),dp(14),dp(12));x.setBackground(round(SURF,14,Color.rgb(21,57,78),1));x.addView(v);return x;}
+ private GradientDrawable round(int fill,int r,int stroke,int sw){GradientDrawable g=new GradientDrawable();g.setColor(fill);g.setCornerRadius(dp(r));g.setStroke(dp(sw),stroke);return g;}
+ private TextView tv(String s,int z,int c,boolean bold){TextView v=new TextView(this);v.setText(s);v.setTextSize(z);v.setTextColor(c);if(bold)v.setTypeface(null,Typeface.BOLD);return v;}
+ private LinearLayout.LayoutParams lpTop(int n){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=dp(n);return p;}
+ private int dp(int n){return(int)(n*getResources().getDisplayMetrics().density);}
+ private void info(String t,String m){new AlertDialog.Builder(this).setTitle(t).setMessage(m).setPositiveButton("OK",null).show();}
 }

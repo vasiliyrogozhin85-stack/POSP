@@ -63,13 +63,13 @@ jobs:
       - name: Upload Host APK
         uses: actions/upload-artifact@v4
         with:
-          name: POSP-Host-v0.9-debug
+          name: POSP-Host-v0.10-debug
           path: host-app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
       - name: Upload Client APK
         uses: actions/upload-artifact@v4
         with:
-          name: POSP-Client-v0.2-debug
+          name: POSP-Client-v0.3-debug
           path: client-app/build/outputs/apk/debug/*.apk
           if-no-files-found: error

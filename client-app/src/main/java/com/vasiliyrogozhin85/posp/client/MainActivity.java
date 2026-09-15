@@ -4,6 +4,7 @@ import android.os.*;
 import android.hardware.usb.*;
 import android.content.*;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.content.pm.*;
 import android.view.*;
 import android.widget.*;
@@ -16,17 +17,19 @@ import java.util.*;
 public class MainActivity extends Activity {
     private final int BG=Color.rgb(7,17,31),SURF=Color.rgb(13,27,42),ACC=Color.rgb(53,230,107),TEXT=Color.rgb(242,247,255),MUTED=Color.rgb(169,184,199);
     private UsbManager usb;private UsbAccessory acc;private ParcelFileDescriptor pfd;private FileInputStream in;private FileOutputStream out;private volatile boolean running;
-    private TextView status,log;private File lastReport;private ReportLogger reporter;private Thread.UncaughtExceptionHandler oldCrash;
+    private TextView status,log;private File lastReport;private ReportLogger reporter;private Thread.UncaughtExceptionHandler oldCrash;private boolean researchRxRegistered; private final BroadcastReceiver researchRx=new BroadcastReceiver(){public void onReceive(Context c,Intent i){report("research broadcast "+i.getAction());collect(false);}};
 
-    @Override public void onCreate(Bundle b){super.onCreate(b);reporter=new ReportLogger(this,"Client_v0.2");installCrash();usb=(UsbManager)getSystemService(USB_SERVICE);setContentView(ui());report("onCreate");detect(getIntent());}
+    @Override public void onCreate(Bundle b){super.onCreate(b);reporter=new ReportLogger(this,"Client_v0.3");installCrash();usb=(UsbManager)getSystemService(USB_SERVICE);setContentView(ui());registerResearchReceiver();report("onCreate");detect(getIntent());}
     @Override protected void onNewIntent(Intent i){super.onNewIntent(i);setIntent(i);report("onNewIntent "+i.getAction());detect(i);}
     @Override protected void onResume(){super.onResume();report("onResume");if(!running)detect(getIntent());}
     @Override protected void onStop(){report("onStop");String p=reporter.exportToDownloads("autosave");report("autosave="+p);super.onStop();}
-    @Override protected void onDestroy(){report("onDestroy");close();super.onDestroy();}
+    @Override protected void onDestroy(){report("onDestroy");close();if(researchRxRegistered)unregisterReceiver(researchRx);super.onDestroy();}
+
+    private void registerResearchReceiver(){IntentFilter f=new IntentFilter("com.vasiliyrogozhin85.posp.client.COLLECT_RESEARCH");if(Build.VERSION.SDK_INT>=33)registerReceiver(researchRx,f,Context.RECEIVER_EXPORTED);else registerReceiver(researchRx,f);researchRxRegistered=true;}
     private void installCrash(){oldCrash=Thread.getDefaultUncaughtExceptionHandler();Thread.setDefaultUncaughtExceptionHandler((t,e)->{reporter.throwable("uncaught/"+t.getName(),e);reporter.exportToDownloads("CRASH");if(oldCrash!=null)oldCrash.uncaughtException(t,e);});}
 
     private View ui(){ScrollView sv=new ScrollView(this);sv.setBackgroundColor(BG);LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.VERTICAL);r.setPadding(dp(16),dp(16),dp(16),dp(24));sv.addView(r);
-        r.addView(tv("▲ POSP Client",28,TEXT,true));r.addView(tv("v0.2 • DOOGEE companion + diagnostics",13,MUTED,false));
+        r.addView(tv("▲ POSP Client",28,TEXT,true));r.addView(tv("v0.3 • сбор данных для разработки POSP OS",13,MUTED,false));
         r.addView(card(tv("СНАЧАЛА ЗДЕСЬ: 1) запустите Client на DOOGEE; 2) оставьте его открытым; 3) подключите USB-OTG к телефону Host; 4) дальнейшие кнопки нажимайте в Host.",15,TEXT,true)),top(12));
         status=tv("● Ожидание POSP Host",15,TEXT,true);r.addView(card(status),top(8));
         r.addView(section("Диагностика"));
@@ -48,6 +51,10 @@ public class MainActivity extends Activity {
         ActivityManager am=(ActivityManager)getSystemService(ACTIVITY_SERVICE);ActivityManager.MemoryInfo mi=new ActivityManager.MemoryInfo();am.getMemoryInfo(mi);JSONObject mem=new JSONObject();mem.put("total",mi.totalMem);mem.put("avail",mi.availMem);j.put("memory",mem);
         StatFs sf=new StatFs(getFilesDir().getAbsolutePath());JSONObject st=new JSONObject();st.put("total",sf.getTotalBytes());st.put("avail",sf.getAvailableBytes());j.put("storage",st);
         JSONArray feats=new JSONArray();for(FeatureInfo f:getPackageManager().getSystemAvailableFeatures())if(f.name!=null)feats.put(f.name);j.put("features",feats);
+        JSONObject screen=new JSONObject();android.util.DisplayMetrics dm=getResources().getDisplayMetrics();screen.put("width_px",dm.widthPixels);screen.put("height_px",dm.heightPixels);screen.put("density_dpi",dm.densityDpi);j.put("display",screen);
+        JSONArray sensors=new JSONArray();android.hardware.SensorManager sm=(android.hardware.SensorManager)getSystemService(SENSOR_SERVICE);for(android.hardware.Sensor s:sm.getSensorList(android.hardware.Sensor.TYPE_ALL)){JSONObject x=new JSONObject();x.put("name",s.getName());x.put("vendor",s.getVendor());x.put("type",s.getType());x.put("version",s.getVersion());sensors.put(x);}j.put("sensors",sensors);
+        JSONObject cam=new JSONObject();try{android.hardware.camera2.CameraManager cm=(android.hardware.camera2.CameraManager)getSystemService(CAMERA_SERVICE);JSONArray ids=new JSONArray();for(String id:cm.getCameraIdList())ids.put(id);cam.put("ids",ids);}catch(Exception e){cam.put("error",e.toString());}j.put("cameras",cam);
+        JSONObject sys=new JSONObject();sys.put("supported_abis",new JSONArray(Arrays.asList(Build.SUPPORTED_ABIS)));sys.put("bootloader",Build.BOOTLOADER);sys.put("radio",Build.getRadioVersion());sys.put("host",Build.HOST);sys.put("tags",Build.TAGS);j.put("build_extra",sys);
         File base=getExternalFilesDir(null);if(base==null)base=getFilesDir();File dir=new File(base,"reports");dir.mkdirs();lastReport=new File(dir,"POSP_Client_Report_"+System.currentTimeMillis()+".json");try(FileOutputStream o=new FileOutputStream(lastReport)){o.write(j.toString(2).getBytes("UTF-8"));}report("local report "+lastReport.getAbsolutePath()+" size="+lastReport.length());Toast.makeText(this,"Отчёт собран",Toast.LENGTH_SHORT).show();if(send)sendReport();}catch(Exception e){reporter.throwable("collect",e);info("Ошибка",e.toString());}}
     private void sendReport(){if(lastReport==null||!lastReport.exists()){info("Нет отчёта","Сначала соберите отчёт.");return;}if(!running||out==null){info("Host не подключён","Локальный отчёт сохранён, но Client Link не активен.");return;}File f=lastReport;new Thread(()->{try{sendLine(Protocol.REPORT_BEGIN+" "+f.length());try(FileInputStream x=new FileInputStream(f)){byte[]b=new byte[16384];int n;while((n=x.read(b))>0)out.write(b,0,n);out.flush();}sendLine(Protocol.REPORT_END);report("report sent "+f.length());}catch(Exception e){reporter.throwable("sendReport",e);}},"client-report").start();}
     private synchronized void sendLine(String s)throws Exception{if(out==null)throw new IOException("out=null");out.write(Protocol.line(s));out.flush();}
@@ -56,10 +63,11 @@ public class MainActivity extends Activity {
     private void showHelp(){info("Порядок работы","1. Откройте POSP Client на DOOGEE.\n2. Убедитесь, что включена «Отладка по USB» в параметрах разработчика.\n3. Оставьте Client открытым.\n4. Подключите DOOGEE к телефону Host через OTG.\n5. Перейдите на Host и выполняйте кнопки сверху вниз: Найти DOOGEE → Подключить ADB → подтвердить RSA на DOOGEE → Проверить ADB.\n6. Только после успешной проверки ADB используйте перезагрузку.\n7. Для Client Link на Host нажмите «Запустить Client USB (AOA)», подождите переподключения, затем «Найти DOOGEE» → «Открыть Client Link» → PING.\n\nОТЧЁТЫ:\nClient автоматически ведёт сессионный журнал. При уходе приложения в фон он сохраняется в Download/POSPReports. Также можно нажать кнопку экспорта вручную. Загрузите этот TXT сюда для анализа.");
     }
     private void info(String t,String m){new AlertDialog.Builder(this).setTitle(t).setMessage(m).setPositiveButton("Понятно",null).show();}
-    private View card(View v){LinearLayout l=new LinearLayout(this);l.setPadding(dp(14),dp(14),dp(14),dp(14));l.setBackgroundColor(SURF);l.addView(v);return l;}
+    private View card(View v){LinearLayout l=new LinearLayout(this);l.setPadding(dp(14),dp(14),dp(14),dp(14));l.setBackground(round(SURF,16,Color.rgb(25,78,56),1));l.addView(v);return l;}
     private TextView section(String s){TextView v=tv(s,17,TEXT,true);v.setPadding(0,dp(18),0,dp(6));return v;}
-    private Button btn(String s,View.OnClickListener c){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextColor(TEXT);b.setBackgroundColor(Color.rgb(18,40,58));b.setOnClickListener(c);b.setLayoutParams(top(6));return b;}
+    private Button btn(String s,View.OnClickListener c){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextColor(TEXT);b.setTextSize(15);b.setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);b.setPadding(dp(16),0,dp(12),0);b.setBackground(round(Color.rgb(13,55,44),16,ACC,1));b.setOnClickListener(c);b.setLayoutParams(top(7));b.setMinHeight(dp(56));return b;}
     private TextView tv(String s,int z,int c,boolean bold){TextView v=new TextView(this);v.setText(s);v.setTextSize(z);v.setTextColor(c);if(bold)v.setTypeface(null,android.graphics.Typeface.BOLD);return v;}
     private LinearLayout.LayoutParams top(int n){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=dp(n);return p;}
+    private GradientDrawable round(int fill,int r,int stroke,int sw){GradientDrawable g=new GradientDrawable();g.setColor(fill);g.setCornerRadius(dp(r));g.setStroke(dp(sw),stroke);return g;}
     private int dp(int x){return (int)(x*getResources().getDisplayMetrics().density);}
 }
