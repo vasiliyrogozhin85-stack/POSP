@@ -1,0 +1,24 @@
+plugins { id "com.android.application" }
+
+android {
+    namespace "com.vasiliyrogozhin85.upospa"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.vasiliyrogozhin85.upospa"
+        minSdk 21
+        targetSdk 36
+        versionCode 81
+        versionName "0.8-beta-wizard"
+    }
+
+    buildTypes {
+        debug { minifyEnabled false }
+        release { minifyEnabled false }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

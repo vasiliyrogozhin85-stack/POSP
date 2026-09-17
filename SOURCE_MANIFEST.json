@@ -1,0 +1,283 @@
+{
+  "project": "uPOSPa",
+  "version": "0.8-beta-wizard",
+  "versionCode": 81,
+  "generated": "2026-09-17",
+  "files": [
+    {
+      "path": ".github/workflows/build-upospa.yml",
+      "size": 939,
+      "sha256": "0a873c2447303364605b220a20b32fd94d305998cf5c459600ebed476cdcd187"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "size": 1336,
+      "sha256": "231b58eb4cbe4c815cbc2f467df923cb98d09ce17cda21a187b8e7723709a2f4"
+    },
+    {
+      "path": "README.md",
+      "size": 5399,
+      "sha256": "bb62913552f41e3a5d0a9b93a086f2b281fe366614be8dcd29ef9ca9bd76a0ea"
+    },
+    {
+      "path": "app/build.gradle",
+      "size": 529,
+      "sha256": "cfe826c0d9cac6831e32fb7a192eea3a6275a72f645a15a6cabeef89a7d59939"
+    },
+    {
+      "path": "app/src/main/AndroidManifest.xml",
+      "size": 2247,
+      "sha256": "53158ccf50826bd733f5767db57242ebdd7f28929545c2a7a4236a83e6f43e2e"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/AdbKeyStore.java",
+      "size": 4534,
+      "sha256": "2f1f6d01840f3973f6875efa4011356c64f60eed8906f3c035f0f3882a05297d"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/AdbUsbClient.java",
+      "size": 6947,
+      "sha256": "c6093fef10acbbd468b962bb35fcd9b59107fe4582f67e2ba2083c7e91a4c31c"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/AoaHostConnection.java",
+      "size": 4517,
+      "sha256": "9b44dcd1838e745634516029c9c870f23625e403ce8863feb8c83915f00813d3"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/ClientActivity.java",
+      "size": 18378,
+      "sha256": "03a7092e38892bb975b60c0682ddff6910e03c047719446eaba6a54f64708bd5"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/CompatibilityEvaluator.java",
+      "size": 4903,
+      "sha256": "0201286a008838f8cfdfb5214c693f720f6b55257e07f4c435563843bfccc872"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/DashboardActivity.java",
+      "size": 3244,
+      "sha256": "02f48c49c60ed04d9c09704ddced2e76f6bbd32505d2240330e922f9c57c45d4"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/DeviceHistoryStore.java",
+      "size": 1406,
+      "sha256": "c181fb076a0065039abbbcaf4995435eafad351753906a4021b6da057207a32f"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/DeviceReport.java",
+      "size": 264,
+      "sha256": "4477c95698f60a1fdee91d63e04bbaccb2e684902a08a71358c562d758872919"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/DeviceSnapshot.java",
+      "size": 8636,
+      "sha256": "c0048483ebf9434e430b9f64c9b039c4352404dd96559bed826fad854affda26"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/FastbootUsbClient.java",
+      "size": 9146,
+      "sha256": "91208017e30156e08bbe4c570b2b4265129484818fed440e15fc66a111bffaa7"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/FirmwareAnalyzer.java",
+      "size": 6960,
+      "sha256": "85102d4d95eab3ae66231ebb922b84a16ffff18ee62a82b5994c2a3fdb5ac5d3"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/FirmwareManifest.java",
+      "size": 1266,
+      "sha256": "e45314f880cb3979fb84019b4d849e60740f9e648f2eff618a37d48c911c2fa8"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/FirmwarePackageCache.java",
+      "size": 750,
+      "sha256": "7a78f66f1b47f3343bdb35bc3009cf9d47244e2a955c8b0ed7cd6a36bfbb4540"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/HardwareTestActivity.java",
+      "size": 1616,
+      "sha256": "afff1e69bd598bdc987305bf9691a86fc4647a6c11c1112069e2563ca4186470"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/HardwareTestEngine.java",
+      "size": 1195,
+      "sha256": "bf817d134d2778841bd8a39a211f739179bd84e230567692b6a95e88386e3f65"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/HistoryActivity.java",
+      "size": 1459,
+      "sha256": "6ab4493a99e280dab1c199ae7cdb46ef0f2a50ce98064caa2eff5bd4c118a888"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/HostActivity.java",
+      "size": 16861,
+      "sha256": "9328b8fc477d01f4f437c999521caf6f68a9fcc2723c3d4ba9efccace9fce835"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/InstallPlanner.java",
+      "size": 4342,
+      "sha256": "b4b4c345b2feced8181acb1c8420476e289fdac6623a570acfd129c80bd7019b"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/ModeChoiceActivity.java",
+      "size": 5144,
+      "sha256": "5044c2614ec7a4b7dcc80076225229e0a09d35463b13967c33358a228087f279"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/OemProfileEngine.java",
+      "size": 1707,
+      "sha256": "485db2cd2bd568a57a95aaddfc166bb895af5c83169979152580818d067d71ac"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/OperationJournal.java",
+      "size": 699,
+      "sha256": "e247c643bb5f12eb1663aa540b92743d0a23e4c385232fd641ddf4308177ee5a"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/PackageLibraryActivity.java",
+      "size": 1658,
+      "sha256": "7f1f69e3ddecd427bdea143ea1795a219b72c37c7e1df570d8329c5641c88cc7"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/PartitionInspector.java",
+      "size": 3390,
+      "sha256": "431dd9d9a4a7a9ba0268af7de6831be1746b3d4de20972ceba9766eaef8d16c6"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/PreflightEngine.java",
+      "size": 5681,
+      "sha256": "d7c351e3e53c7dee691ce7ad77e98bd49f3bb2019927ac8f22d33cab18a91825"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/Protocol.java",
+      "size": 525,
+      "sha256": "a7b84914ea5472c7c901333727521889c15b1c08486bba3ea1df0fb7b04301af"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/ReportActivity.java",
+      "size": 15536,
+      "sha256": "f638a61c021aaefd672dc9b151717a9f6e467bed8d61232a55ff61a7be4b90d5"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/ReportLogger.java",
+      "size": 3797,
+      "sha256": "11fef47fc96ff68c29442cfcb477dc59f68f5063f545171903e25f48e6b595cd"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/SafetyGate.java",
+      "size": 1085,
+      "sha256": "2684ba4292bb94d978a409270c8a63f3fe979935b8a75317a488db4c3941bce6"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/ServiceActivity.java",
+      "size": 15609,
+      "sha256": "67764570ea456b9ce478c5f94603853c9e027032d297a0726845ddc34260ec7f"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/SessionStore.java",
+      "size": 764,
+      "sha256": "1819f6d6f6f755f6a79a73c62d6fc6d13e3aa8aa644bf5cab51cb9a5d8a14ba1"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/SettingsActivity.java",
+      "size": 1200,
+      "sha256": "1c370b743c787bffdabe5fa1750baefae594772022bb32477b05a31297e0df0a"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/UiKit.java",
+      "size": 4408,
+      "sha256": "47358f8cb8a9236591d32a8b040c9bbc98fad1a2953cbed0cb079e8c0d5eb083"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/UsbModeDetector.java",
+      "size": 1367,
+      "sha256": "0183ad4b58bbafeab237d5b290188b37d6234f6bf1519a8035077b63cd0a8374"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/WizardActivity.java",
+      "size": 15864,
+      "sha256": "be938bece66f05a872d7223eca04da961ebc272861b6f1632cb6f4329232277e"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/WizardEngine.java",
+      "size": 22870,
+      "sha256": "5890c4acc4c7aae2021e4c8f5c48ba8ee7c33389d6915e537ccb04910d0407de"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/WizardReportExporter.java",
+      "size": 2023,
+      "sha256": "f5d19738eeb682e67e7e133fbac09efd2cdeb3932ac5a64d68e1794884fdbce4"
+    },
+    {
+      "path": "app/src/main/java/com/vasiliyrogozhin85/upospa/WizardStateStore.java",
+      "size": 1569,
+      "sha256": "b5768cd35b3d63bd5a160e6b8e2ff509ce13067c3ec0a46cda5f23292801caaa"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_upospa.xml",
+      "size": 289,
+      "sha256": "ae6163effe31a3d8a9a1aded0b0ea2d80698002320a2099dc7d9f990648af51c"
+    },
+    {
+      "path": "app/src/main/res/values/strings.xml",
+      "size": 108,
+      "sha256": "abd0c9028e7a664b8d505bbcb8cee09f2f53d629f7f5f8dfd16e353002d90bb9"
+    },
+    {
+      "path": "app/src/main/res/xml/accessory_filter.xml",
+      "size": 202,
+      "sha256": "ac0756318ebb337b074914bb61e572dc0c7b56d94cad5253e47b6ce84037bf39"
+    },
+    {
+      "path": "app/src/main/res/xml/file_paths.xml",
+      "size": 224,
+      "sha256": "c3356a9c324c2aeef6fdb610cf0626685dc20d1bcd7ec41f69d30dbd7448f8d0"
+    },
+    {
+      "path": "build.gradle",
+      "size": 73,
+      "sha256": "5a12b9bc1b3f8206602236257156c40d445957fb7813d48bdd7385db97ad44c5"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "size": 633,
+      "sha256": "e326d00ac1375c3accf3fd48f80245391edfd82a63e7de34a257dc6cacd123e4"
+    },
+    {
+      "path": "docs/SAFETY_MODEL.md",
+      "size": 644,
+      "sha256": "e725d4fa4cb3a5be721c6c586134f89518030c9bb476ac5b3b0421ffa08bd3f5"
+    },
+    {
+      "path": "docs/WIZARD.md",
+      "size": 1484,
+      "sha256": "72448ab69e7f1e444fd65737ef66961c1d68ec937e7cf1180e27e81b1c3c8561"
+    },
+    {
+      "path": "docs/WIZARD_TEST_CHECKLIST.md",
+      "size": 2406,
+      "sha256": "ce251b384860aff494a1017aaab9670c1d24c35afea260370bede60f6fa835c0"
+    },
+    {
+      "path": "docs/uPOSPa_UI_reference.png",
+      "size": 355699,
+      "sha256": "177bff8c7288c71ea95a757eb0da71045a7ba0f2906826e563b206e0d01cb6b4"
+    },
+    {
+      "path": "gradle.properties",
+      "size": 109,
+      "sha256": "e6b436ff6a08da8b8c05e0e2fc1a7f40f41701bb506cd80fc2ddfd7b6e3b3b2b"
+    },
+    {
+      "path": "settings.gradle",
+      "size": 279,
+      "sha256": "54e0d79c3e8cd2406bdd14bf760ed64117498ba5d1ed7df36563718e44e30c1c"
+    },
+    {
+      "path": "upload_upospa_termux.sh",
+      "size": 1060,
+      "sha256": "1783c45216a6abc7ccfb288af7ea28cc2d2169c172ca6e7236f5ed93930db673"
+    }
+  ]
+}

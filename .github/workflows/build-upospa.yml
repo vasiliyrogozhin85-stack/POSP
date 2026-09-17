@@ -1,0 +1,29 @@
+name: Build uPOSPa 0.8 beta Wizard APK
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main", "upospa-unified-v0.8-beta-wizard"]
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.1.0"
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --stacktrace
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk uPOSPa_v0.8_beta_wizard_debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uPOSPa-v0.8-beta-wizard-debug
+          path: uPOSPa_v0.8_beta_wizard_debug.apk
