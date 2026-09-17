@@ -3,11 +3,12 @@
   "version": "0.8-beta-wizard",
   "versionCode": 81,
   "generated": "2026-09-17",
+  "build_workflow_fix": "removed android-actions/setup-android@v3 and obsolete SDK package tools",
   "files": [
     {
       "path": ".github/workflows/build-upospa.yml",
-      "size": 939,
-      "sha256": "0a873c2447303364605b220a20b32fd94d305998cf5c459600ebed476cdcd187"
+      "size": 1310,
+      "sha256": "624094589bb0a2c3634500c2ba9bdbeedeb9828dd5c8b566d0d58ae064e87f29"
     },
     {
       "path": "CHANGELOG.md",
@@ -278,6 +279,11 @@
       "path": "upload_upospa_termux.sh",
       "size": 1060,
       "sha256": "1783c45216a6abc7ccfb288af7ea28cc2d2169c172ca6e7236f5ed93930db673"
+    },
+    {
+      "path": "upospa_publish_build_download_termux.sh",
+      "size": 5155,
+      "sha256": "c2ab09edb9ee3234fcc99557db04b28ebb5f6994fe78a719689b71305877a284"
     }
   ]
 }
